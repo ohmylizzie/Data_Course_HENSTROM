@@ -1,0 +1,57 @@
+## Tasks:
+#Create a plaintext document named “final_project_idea.txt”
+#In it, describe your idea for a data analysis final project
+#Also, Describe the sort of data you will use, potential sources, and what the data might look like
+#(If you already have data, skip this task) Create fake data that simulates what your final project data set might look like. Preferrably a csv file
+#Generate a plot (using ggplot) using either your real or fake data that shows at least one expected result
+
+### 1. For my final project, I would like to view the different species of butterflies and moths, and to see 
+# traits that make them different. Both evolved from a common ancestor and I would like to see what biological traits that
+# they have in common.
+
+### 2. I will use the "Traits data for the butterflies and macro-moths of Great Britain and Ireland, 2022"
+# that I had found when searching for datasets that I could use. While it is more specific than I'd like,
+# there are about 160,000 species of moths and 17,500 butterflies, so I believe that my computer would blow up
+# if I were to use that many variables. With this dataset, I could see the difference between their lifespans, 
+# if they are native to Great Britain and/or Ireland, and even their evolutionary biology, as the authors mention.
+# I would like to explore their evolutionary biology further, but that may require some more outside research.
+
+### 3. ggplot data
+
+library(tidyverse)
+library(ggplot2)
+
+dataaa = read.csv("ecological_traits_2022.csv")
+
+colnames("dataaa")
+str("dataaa")
+
+colnames(dataaa) <- as.character(dataaa[1, ])
+
+dataaa <- dataaa[-1, ]
+
+rownames(dataaa) <- NULL
+
+View(dataaa)
+
+colnames(dataaa)[duplicated(colnames(dataaa))]
+colnames(dataaa) <- make.names(colnames(dataaa), unique = TRUE) 
+print(colnames(dataaa))
+
+my_ggplot = dataaa %>% 
+  ggplot(aes(
+             x = rarirty_gb)) +
+  geom_bar()
+
+ggplot_data <- ggplot_build(my_ggplot)$data
+
+write.table(ggplot_data, file = "my_ggplot_data.txt", sep = ",")
+
+## This graph shows the current rarity of butterflies and moths in Great Britain and Ireland. 
+# I think that this is an interesting statistic. The bar that is not named is what I am guessing is "common.""y","count","prop","x","flipped_aes","PANEL","group","ymin","ymax","xmin","xmax","colour","fill","linewidth","linetype","alpha"
+"1",777,777,1,1,FALSE,"1",1,0,777,0.55,1.45,NA,"grey35",0.5,1,NA
+"2",68,68,1,2,FALSE,"1",2,0,68,1.55,2.45,NA,"grey35",0.5,1,NA
+"3",107,107,1,3,FALSE,"1",3,0,107,2.55,3.45,NA,"grey35",0.5,1,NA
+"4",3,3,1,4,FALSE,"1",4,0,3,3.55,4.45,NA,"grey35",0.5,1,NA
+"5",13,13,1,5,FALSE,"1",5,0,13,4.55,5.45,NA,"grey35",0.5,1,NA
+
