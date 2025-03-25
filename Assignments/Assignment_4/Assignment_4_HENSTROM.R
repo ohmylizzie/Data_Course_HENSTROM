@@ -38,10 +38,14 @@ colnames(dataaa)[duplicated(colnames(dataaa))]
 colnames(dataaa) <- make.names(colnames(dataaa), unique = TRUE) 
 print(colnames(dataaa))
 
-dataaa %>% 
+my_ggplot = dataaa %>% 
   ggplot(aes(
              x = rarirty_gb)) +
   geom_bar()
+
+ggplot_data <- ggplot_build(my_ggplot)$data
+
+write.table(ggplot_data, file = "my_ggplot_data.txt", sep = ",")
 
 ## This graph shows the current rarity of butterflies and moths in Great Britain and Ireland. 
 # I think that this is an interesting statistic. The bar that is not named is what I am guessing is "common."

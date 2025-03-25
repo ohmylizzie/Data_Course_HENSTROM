@@ -1,0 +1,83 @@
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(gganimate)
+
+## changed wd to one that I could grab the data from
+setwd('~/Desktop/BIOL3100/Data_Course_HENSTROM')
+getwd()
+
+## reading data
+dat = read.csv("Data/BioLog_Plate_Data.csv")
+
+View(dat)
+
+## cleaning data so all the columns that start with 'Hr_" can be changed into
+## times periods and so that they all also have values
+clean_data_names = dat %>% 
+  pivot_longer(col = starts_with('Hr_'),
+               names_to = 'time',
+               values_to = 'abs') %>% 
+  mutate(time = as.numeric(str_remove(time, 'Hr_')))
+
+View(clean_data_names)               
+
+## Viewing unique row names in the sample.id column
+clean_data_names$Sample.ID %>% 
+  unique()
+## We can see that there four unique names: "Clear_Creek", "Soil_1", "Soil_2",
+## and "Waste_Water". 
+
+
+
+## Combine like categories to simplify graphs. Combine waters and soils
+newly_cleaned_data = clean_data_names %>% 
+  mutate(type = case_when(
+    Sample.ID %in% c("Clear_Creek", "Waste_Water") ~'Water',
+    TRUE ~ 'Soil'
+  ))
+
+## Create a graph from data, specifying a specific dilution factor of 0.1
+clean_data_plot = newly_cleaned_data %>% 
+  filter(Dilution == 0.1)
+
+Bio_Plot = clean_data_plot %>% 
+  ggplot(aes(x = time,
+             y = abs,
+             color = type)) +
+  geom_smooth(se = F) +
+  facet_wrap(~ Substrate) +
+  labs(title = 'Just dilution 0.1',
+       x = 'Time',
+       y = 'Absorbance',
+       color = 'Type') +
+  theme_minimal()
+
+
+ggsave("Assignments/Assignment_6/Clean_Bio_Plot.pdf",
+       plot = Bio_Plot)
+
+
+## creating a mean abs animated graph for Itaconic Acid
+Itaconic_acid_dat = newly_cleaned_data %>% 
+  filter(Substrate == 'Itaconic Acid')
+
+ABS = Itaconic_acid_dat %>% 
+  group_by(Sample.ID, Dilution, time) %>% 
+  summarise(mean_abs = mean(abs)) 
+
+Clean_Bio_animation = ABS %>% 
+  ggplot(aes(x = time,
+             y = mean_abs,
+             color = Sample.ID)) +
+  geom_line() +
+  facet_wrap(~ Dilution) +
+  labs( x = "Time",
+        y = "Mean_absorbance",
+        color = "Sample.ID") +
+  theme_minimal() +
+  transition_reveal(time)
+
+anim_save("Assignments/Assignment_6/Clean_Bio_animation.gif",
+          plot = Clean_Bio_animation)
+
