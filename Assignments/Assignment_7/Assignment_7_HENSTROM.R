@@ -1,0 +1,162 @@
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+
+
+
+religions = read_csv('Assignments/Assignment_7/Utah_Religions_by_County.csv')
+View(religions)
+
+religions_rounded = religions %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>% 
+  clean_names() %>% 
+  mutate(county = str_remove(county, " County"))
+View(religions_rounded)
+
+dominant_religions = religions_rounded %>%
+  select(-starts_with('r')) %>% 
+  pivot_longer(cols = -c(county, pop_2010),
+               names_to = "religion",
+               values_to = "proportion") %>%
+  group_by(county) %>%
+  slice_max(proportion, n = 1,
+            with_ties = FALSE) %>% 
+  ungroup()
+  
+
+## GRAPHS
+
+graph_2 = religions_rounded %>% 
+  ggplot(aes(x = county,
+             y = lds,
+             color = pop_2010)) +
+  geom_point() +
+  labs(title = "LDS Proportion vs. County",
+       x = "County",
+       y = "LDS Proportion") +
+  theme_minimal()
+plot(graph_2)
+
+
+mod = glm(data = religions_rounded,
+          formula = religious ~ lds)
+summary(mod)
+  
+
+graph_3 = religions_rounded %>% 
+  ggplot(aes(x = pop_2010,
+             y = catholic,
+             color = county)) +
+  geom_point() +
+  labs(title = "Proportion of Catholic vs. Population of Utah Counties in 2010",
+       x = "Population 2010",
+       y = "Catholic Proportion") +
+  theme_minimal()
+plot(graph_3)
+
+
+
+graph_4 = religions_rounded %>%
+  ggplot(aes(x = county, y = pop_2010)) + 
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Population by County", x = "County", y = "Population") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+plot(graph_4)
+
+
+graph_5 = religions_rounded %>% 
+  select(-starts_with('r')) %>% 
+  pivot_longer(cols = -c(county, pop_2010),
+               names_to = "religion",
+               values_to = "proportion") %>% 
+  group_by(county) %>%
+  summarize(max_religion = max(proportion)) %>%
+  ungroup() %>% 
+  ggplot(aes(x = county,
+             y = max_religion)) +
+  geom_bar(stat = "identity", 
+           fill = "steelblue") +
+  labs(title = "Proportion of Religous People vs. County)",
+       x = "County",
+       y = "Proportion of Population") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+plot(graph_5)
+
+
+
+graph_6 <- dominant_religions %>%
+  ggplot(aes(y = reorder(county, -proportion),
+             x = proportion,
+             fill = religion)) +  
+  geom_bar(stat = "identity") + 
+  coord_flip() +  
+  labs(title = "Dominant Religion Per County in Utah",
+    y = "County",
+    x = "Proportion of Population",
+    fill = "Religion") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 10),
+    legend.position = "right") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+plot(graph_6)
+
+graph_7 = dominant_religions %>% 
+  ggplot(aes(x = county,
+             y = pop_2010,
+             fill = religion)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Dominant Religion Per County in Utah",
+       y = "County",
+       x = "Proportion of Population",
+       fill = "Religion") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 10),
+        legend.position = "right") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+plot(graph_7)
+
+mod = glm(data = dominant_religions,
+          formula = pop_2010 ~ religion)
+summary(mod)
+
+
+graph_8 = religions_rounded %>%
+  pivot_longer(cols = -c(county, pop_2010, religious, non_religious), # Include non_religious here
+               names_to = "religion",
+               values_to = "proportion") %>%
+  ggplot(aes(y = non_religious, # Change x-axis to non_religious
+             x = proportion)) +
+  geom_point(alpha = 0.7,
+             color = "steelblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  facet_wrap(~ religion, scales = "free_y") +
+  labs(title = "Comparison of Religious Proportion with Non-Religious Population",
+       y = "Proportion of Non-Religious People",
+       x = "Proportion of Specific Religion") +
+  theme_minimal()
+plot(graph_8)
+
+
+## QUESTIONS
+
+## “Does population of a county correlate with the proportion of any 
+## specific religious group in that county?”
+
+# From graph_7, it seems that for most of the counties in Utah, the higher
+# the population, the more likely the popular religion will be LDS. 
+
+
+## “Does proportion of any specific religion in a given county correlate with
+## the proportion of non-religious people?”
+
+# Positive correlations with the proportion of non-religious people
+# with specific religions can be seen in graph_8. This shows that the 
+# episcopal church, southern baptism convention, evangelical, catholic, 
+# and united methodist religions have more of a positive 
+# correlation than the other religions. This means that as the number
+# of non-religious people increase, so do the number of people of these 
+# specific religions. On the contrary, lds, and buddhism_mahayan show a 
+# negative slope. This means that as the number of people in those specific 
+# religions increase, the number of non_religious people decrease.
