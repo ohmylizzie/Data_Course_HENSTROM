@@ -2,8 +2,7 @@ library(tidyverse)
 library(janitor)
 library(ggplot2)
 library(easystats)
-
-
+setwd('~/Desktop/BIOL3100/Data_Course_HENSTROM')
 
 dat = read.csv("BIOL3100_Exams/Exam_2/unicef-u5mr.csv") %>% 
   clean_names()
