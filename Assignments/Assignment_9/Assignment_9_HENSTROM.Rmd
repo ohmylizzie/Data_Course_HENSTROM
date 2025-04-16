@@ -1,0 +1,228 @@
+---
+title: "Assignment_09"
+output: html_document
+date: "2025-04-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment 09
+
+I will be exploring the data given from GradSchool_Admissions.csv.
+These are the packages used in this assignment:
+
+```{r libraries, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(easystats)
+library(MASS)
+library(caret)
+```
+
+## Quick Glimpse of Data Set
+
+This is what the data set looks like:
+
+```{r glimpse, message=FALSE, warning=FALSE}
+dat = read.csv("~/Desktop/BIOL3100/Data_Course_HENSTROM/Data/GradSchool_Admissions.csv")
+glimpse(dat)
+```
+
+
+## Exploration of Data Set
+
+Here are some functions that allow us to view the correlation of the "admit"
+and other categories found in this data set.
+
+``` {r explore, message=FALSE, warning=FALSE, results ='hide'}
+as.logical(dat$admit)
+mod = glm(data = dat,
+          formula = admit ~ gre + gpa + rank, 
+          family = 'binomial')
+
+
+mod2 = glm(data = dat,
+           formula = admit ~ gre + gpa * rank,
+           family = 'binomial')
+performance(mod2)
+
+
+mod3 = glm(data = dat,
+           formula = admit ~ (gre + rank) * gpa,
+           family = 'binomial')
+performance(mod3)
+
+
+mod4 = glm(data = dat,
+           formula = admit ~ (gre + rank) * gpa)
+performance(mod4)
+```
+
+
+Now using the *predict* function, we can compare models:
+
+```{r predict, message=FALSE, warning=FALSE}
+dat$pred_1 = predict(mod, dat, type = 'response')
+
+dat$pred_2 = predict(mod2, dat, type = 'response')
+
+dat$pred_1 %>% 
+  summary()
+
+dat$pred_2 %>% 
+  summary()
+
+compare_performance(mod, mod2, mod3, mod4) %>% 
+  plot()
+```
+
+We can see that mod works the best for most of the variables that we
+are looking for.
+
+## Predictions
+
+Predictions for the dataset.
+```{r predictions, message=FALSE, warning=FALSE, results='hide'}
+accuracy = dat %>% 
+  mutate(outcome = case_when(pred_1 < 0.2 ~ 'Not Admitted',
+                             pred_1 >= 0.2 & pred_1 <= 0.4 ~ 'I dont know',
+                             pred_1 > 0.4 ~ 'Admit')) %>% 
+  mutate(accurate = case_when(admit == 1 & outcome == 'Admit' ~ TRUE,
+                              admit == 0 & outcome == 'Not Admitted' ~ TRUE,
+                              TRUE ~ FALSE)) %>% 
+  pluck('accurate') %>% 
+  mean()
+
+
+accuracy_2 <- dat %>% 
+  mutate(outcome_2 = case_when(pred_2 < 0.2 ~ 'Not Admitted',
+                               pred_2 >= 0.2 & pred_2 <= 0.4 ~ 'I dont know',
+                               pred_2 > 0.4 ~ 'Admit')) %>% 
+  mutate(accurate_2 = case_when(admit == 1 & outcome_2 == 'Admit' ~ TRUE,
+                                admit == 0 & outcome_2 == 'Not Admitted' ~ TRUE,
+                                TRUE ~ FALSE)) %>% 
+  pluck('accurate_2') %>% 
+  mean()
+
+```
+
+```{r comparing}
+accuracy
+
+accuracy_2
+```
+
+## Model Choosing
+
+This will allow us to create the best model:
+
+```{r model, message=FALSE, warning=FALSE, results='hide'}
+full_model = glm(data = dat,
+                 formula = as.logical(admit) ~ gre*gpa*rank,
+                 family = 'binomial')
+
+stepwise_mod = stepAIC(full_model, direction = 'both')
+
+best_model = glm(data = dat,
+                 formula = stepwise_mod$formula,
+                 family = 'binomial')
+
+dat$pred_2 = predict(best_model, dat, type = 'response')
+```
+
+The predictions generated from pred_2 using the best model are more closely aligned with the actual admissions decisions compared to those from pred_1, indicating improved predictive performance.
+
+```{r formula}
+print(best_model$formula)
+```
+
+Model comparisons:
+
+```{r compare, echo=FALSE}
+compare_performance(mod, mod2, best_model)
+```
+
+```{r mod, echo=FALSE}
+plot(best_model)
+```
+
+
+## Separating Data
+
+```{r sep, message=FALSE, warning=FALSE, results='hide'}
+
+id = createDataPartition(dat$admit, p = 0.8, list = F)
+dat_train = dat[id, ]
+dim(dat_train) 
+dim(dat) 
+
+dat_test = dat[-id, ]
+
+train_mod = glm(data = dat_train,
+                formula = stepwise_mod$formula,
+                family = 'binomial')
+
+dat_test$pred = predict(train_mod, dat_test, type = 'response')
+
+```
+
+## Test Accuracy
+```{r test_accuracy}
+dat_test %>% 
+  mutate(pred_class = ifelse(pred > 0.5, 1, 0)) %>% 
+  summarise(test_accuracy = mean(pred_class == admit))
+```
+
+## GPA vs. Predicted Probability of Admission
+
+```{r mutate, message=FALSE, warning=FALSE, results='hide'}
+dat %>% 
+  ggplot(aes(x = gpa, y = pred_2, color = factor(admit, labels = c("Reject", "Admit")))) +
+  geom_point(alpha = 0.6) +
+  labs(title = "GPA vs. Predicted Admission Probability",
+       x = "GPA",
+       y = "Predicted Probability",
+       color = "Admission Status") +
+  theme_minimal()
+```
+
+
+## GPA vs. GRE Scores for Admitted students
+
+```{r grevsgpa, message=FALSE, warning=FALSE, results='hide'}
+dat %>% 
+  ggplot(aes(x = gpa, y = gre, color = factor(admit, labels = c("Reject", "Admit")))) +
+  geom_point(alpha = 0.6) +
+  labs(title = "GPA vs. GRE Scores for Admitted students",
+       x = "GPA Score",
+       y = "GRE Score",
+       color = "Admission Status") +
+  theme_minimal()
+```
+
+
+## GPA vs. Rank Scores for Admitted Students
+
+```{r rankvsgpa, message=FALSE, warning=FALSE, results='hide'}
+dat %>% 
+  ggplot(aes(x = gpa, y = rank, color = factor(admit, labels = c("Reject", "Admit")))) +
+  geom_point(alpha = 0.6) +
+  labs(title = "GPA vs. Rank Scores for Admitted Students",
+       x = "GPA Score",
+       y = "College Ranking",
+       color = "Admission Status") +
+  theme_minimal()
+```
+
+## Conclusions
+
+This analysis demonstrates that GRE score, GPA, and the interaction between these variables play the most significant roles in predicting admission into graduate school programs. The stepwise-selected logistic regression model (best_model) outperformed the baseline models in terms of prediction accuracy.
+
+From the GPA vs. Predicted Admission Probability plot, we can observe a positive trend where higher GPA values generally correspond to higher probabilities of admission. Similarly, applicants with both high GRE and GPA scores had the highest chance of acceptance, as shown in the GPA vs. GRE plot.
+
+Interestingly, while undergraduate institution rank does affect admissions, its influence appears less significant compared to GPA and GRE. This is evident in the GPA vs. Rank visualization, where the separation between admitted and rejected students is less distinct.
+
+Overall, this model could be useful for identifying strong applicants based on academic credentials, and for visualizing how different combinations of factors influence admission outcomes.
