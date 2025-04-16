@@ -123,7 +123,7 @@ summary(mod)
 
 
 graph_8 = religions_rounded %>%
-  pivot_longer(cols = -c(county, pop_2010, religious, non_religious), # Include non_religious here
+  pivot_longer(cols = -c(county, pop_2010, religious, non_religious),
                names_to = "religion",
                values_to = "proportion") %>%
   ggplot(aes(y = non_religious, # Change x-axis to non_religious
