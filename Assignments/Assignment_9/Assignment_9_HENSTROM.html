@@ -506,7 +506,7 @@ dat_test$pred = predict(train_mod, dat_test, type = &#39;response&#39;)</code></
   mutate(pred_class = ifelse(pred &gt; 0.5, 1, 0)) %&gt;% 
   summarise(test_accuracy = mean(pred_class == admit))</code></pre>
 <pre><code>##   test_accuracy
-## 1         0.625</code></pre>
+## 1           0.6</code></pre>
 </div>
 <div id="gpa-vs.-predicted-probability-of-admission" class="section level2">
 <h2>GPA vs. Predicted Probability of Admission</h2>

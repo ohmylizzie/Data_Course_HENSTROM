@@ -1,0 +1,9 @@
+Create a plaintext document named “final_project_idea.txt”
+
+In it, describe your idea for a data analysis final project
+
+Also, Describe the sort of data you will use, potential sources, and what the data might look like
+
+(If you already have data, skip this task) Create fake data that simulates what your final project data set might look like. Preferrably a csv file
+
+Generate a plot (using ggplot) using either your real or fake data that shows at least one expected result
