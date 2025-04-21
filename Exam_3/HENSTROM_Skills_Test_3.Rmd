@@ -8,38 +8,130 @@ date: "2025-04-21"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r libraries, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+```{r Question1, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 library(tidyverse)
 library(janitor)
 library(ggplot2)
 library(easystats)
 library(MASS)
 library(caret)
-```
+library(broom)
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r readfile, echo=FALSE}
 dat = read.csv('FacultySalaries_1995.csv')
-dat
+
+newdat = dat %>% 
+  rename("Full" = "AvgFullProfSalary",
+         "Assoc" = "AvgAssocProfSalary",
+         "Assist" = "AvgAssistProfSalary") %>% 
+  pivot_longer(cols = c("Full", "Assoc", "Assist"),
+               names_to = "Rank",
+               values_to = "Salary")
 ```
 
+## Question 1
 
+
+
+```{r plot1, echo=FALSE}
+newdat %>% 
+  filter(!Tier %in% c("VIIB")) %>% 
+  ggplot(aes(x = Rank,
+             y = Salary,
+             fill = Rank)) +
+  geom_boxplot(width = 0.3) +
+  facet_wrap(~ Tier) +
+  scale_fill_manual(values = c("red2", "green3", "lightblue3")) +
+  theme_minimal() +
+  labs(x = "Rank",
+    y = "Salary",
+    fill = "Rank") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.spacing = unit(0.1, "lines"),
+    strip.text = element_text(size = 10))
+
+```
+
+## Question 2
 
 ```{r cleandata, echo=FALSE}
-plot(pressure)
+
+if (!"Tier" %in% names(newdat)) {
+  newdat <- newdat %>%
+    mutate(Tier = dat$Tier) 
+}
+
+
+mod1 <- aov(Salary ~ State + Tier + Rank, data = newdat)
+
+
+summary(mod1)
+```
+## Question 3
+
+```{r tidyjuniper, message=FALSE, warning=FALSE, results ='hide'}
+juniper = read.csv("Juniper_Oils.csv")
+
+newjun = juniper %>% 
+  rename_with(~ gsub("\\.", "-", .)) %>% 
+  rename("compound 1" = "compound-1",
+         "compound 2" = "compound-2") %>% 
+  pivot_longer(cols = c("alpha-pinene","para-cymene","alpha-terpineol","cedr-9-ene","alpha-cedrene","beta-cedrene","cis-thujopsene","alpha-himachalene","beta-chamigrene","cuparene","compound 1","alpha-chamigrene","widdrol","cedrol","beta-acorenol","alpha-acorenol","gamma-eudesmol","beta-eudesmol","alpha-eudesmol","cedr-8-en-13-ol","cedr-8-en-15-ol","compound 2","thujopsenal"),
+               names_to = "ChemicalID",
+               values_to = "Mass_spec_conc")
 ```
 
 
-```{r , echo=FALSE}
-plot(pressure)
+
+## Question 4
+
+```{r plot2, echo=FALSE, warning=FALSE, message=FALSE}
+jun_plot = newjun %>% 
+    ggplot(aes(x = YearsSinceBurn, y = Mass_spec_conc)) +
+  geom_smooth(se = TRUE, color = "blue") +  
+  facet_wrap(~ ChemicalID, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Years Since Burn", 
+    y = "Concentration") +
+  theme(strip.text = element_text(size = 10), 
+    axis.text = element_text(size = 8), 
+    plot.title = element_text(hjust = 0.5),
+    panel.spacing = unit(0.5, "lines"))
+
+plot(jun_plot)
 ```
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+## Question 5
+
+
+```{r glmmod, echo=FALSE, warning=FALSE, message=FALSE}
+
+# Load required libraries
+library(broom)
+
+# Fit the generalized linear model
+jun_glm <- glm(
+  data = newjun,
+  formula = Mass_spec_conc ~ ChemicalID * YearsSinceBurn,
+  family = gaussian()
+)
+
+# Use `broom::tidy()` to extract model output
+glm_results <- tidy(jun_glm)
+
+# Filter for significant terms (p-value < 0.05)
+significant_terms <- glm_results %>%
+  filter(p.value < 0.05) %>%
+  dplyr::select(term, estimate, std.error, statistic, p.value)
+
+# Display the significant terms
+significant_terms
+```
+
+
+
+## Question 6
+
+Submitted to GitHub for a grade.
